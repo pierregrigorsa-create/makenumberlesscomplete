@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐶 Make a Number Less!</title>
+<link href="https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:   #00B4A6;
+  --sky:    #45B7FF;
+  --yellow: #FFD93D;
+  --green:  #6BCB77;
+  --coral:  #FF6B4A;
+  --purple: #9B72CF;
+  --card:   rgba(255,255,255,0.96);
+  --shadow: 0 8px 32px rgba(0,180,166,0.15);
+  --radius: 22px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Nunito',sans-serif;
+  background:linear-gradient(145deg,#E8FFF8 0%,#E8F4FF 45%,#FFF8E8 100%);
+  min-height:100vh; padding:14px;
+}
+#app{max-width:920px;margin:0 auto;display:none;}
+
+/* ── HEADER ── */
+#header{
+  background:linear-gradient(135deg,#00B4A6,#45B7FF);
+  border-radius:var(--radius); padding:14px 20px;
+  margin-bottom:14px; display:flex; align-items:center; gap:10px;
+  box-shadow:0 6px 24px rgba(0,180,166,0.38); color:white;
+}
+#header h1{
+  font-family:'Bubblegum Sans',cursive;
+  font-size:clamp(1.05em,3.6vw,1.65em); flex:1;
+  text-shadow:2px 2px 0 rgba(0,0,0,0.12);
+}
+#progressWrap{height:8px;background:rgba(255,255,255,0.3);border-radius:50px;margin-top:6px;overflow:hidden}
+#progressBar{height:100%;background:var(--yellow);border-radius:50px;transition:width .6s ease;width:0%}
+.ctrl-btn{
+  background:white; border:none; border-radius:50px;
+  padding:9px 15px; font-family:'Bubblegum Sans',cursive; font-size:0.92em;
+  cursor:pointer; white-space:nowrap; flex-shrink:0;
+  box-shadow:0 3px 10px rgba(0,0,0,0.15);
+  transition:transform .15s,background .2s;
+}
+.ctrl-btn:hover{transform:scale(1.07)}
+#backBtn{color:var(--purple)}
+#pauseBtn{color:var(--teal)}
+#pauseBtn.paused{background:var(--yellow);color:#333}
+
+/* ── MAIN GRID ── */
+#mainContent{display:grid;grid-template-columns:210px 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:580px){#mainContent{grid-template-columns:1fr}}
+
+/* ── PUPPY CARD ── */
+#puppyCard{
+  background:var(--card); border-radius:var(--radius);
+  padding:14px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; align-items:center;
+  position:sticky; top:14px;
+}
+#puppyWrap{position:relative;width:100%;max-width:200px}
+#puppySvg{width:100%;max-width:200px;overflow:visible}
+
+/* Arms */
+#leftArm,#rightArm{
+  transform-box:fill-box; transform-origin:top center;
+  transition:transform .65s cubic-bezier(0.34,1.56,0.64,1);
+}
+#puppySvg.point-head     #leftArm,
+#puppySvg.point-and-show #leftArm  {transform:translateY(-58px) rotate(140deg)}
+#puppySvg.show-fingers-1 #rightArm,
+#puppySvg.show-fingers-2 #rightArm,
+#puppySvg.point-and-show #rightArm {transform:rotate(-90deg)}
+#puppySvg.celebrate      #leftArm  {transform:rotate(155deg)}
+#puppySvg.celebrate      #rightArm {transform:rotate(-155deg)}
+
+/* Tail wag */
+@keyframes wag{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(18deg)}}
+#tail{transform-box:fill-box;transform-origin:left center;animation:none}
+#puppySvg.celebrate #tail{animation:wag .45s ease-in-out infinite}
+
+#fingerDisplay{font-size:2.6em;min-height:40px;text-align:center;margin-top:6px;transition:all .3s}
+
+/* "Put in head" banner */
+#headBanner{
+  display:none;
+  background:linear-gradient(135deg,#FFD93D,#FF8C42);
+  color:white; border-radius:13px; padding:8px 10px;
+  font-family:'Bubblegum Sans',cursive; font-size:.9em;
+  text-align:center; margin-top:8px; width:100%;
+  box-shadow:0 3px 10px rgba(255,140,66,.35);
+  animation:bannerPop .4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes bannerPop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* Bubble overlay */
+#bubbleOverlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;border-radius:var(--radius)}
+.bubble-dot{position:absolute;border-radius:50%;animation:bubbleRise 1.3s ease-out forwards;opacity:0}
+@keyframes bubbleRise{
+  0%  {opacity:0;  transform:translateY(0) scale(0)}
+  20% {opacity:.85;transform:translateY(-12px) scale(1)}
+  100%{opacity:0;  transform:translateY(-90px) scale(.4)}
+}
+
+/* ── LESSON PANEL ── */
+#lessonPanel{background:var(--card);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+#speechBubble{
+  background:linear-gradient(135deg,#E8FFFB,#D0F7F2);
+  border:3px solid var(--teal); border-radius:18px;
+  padding:14px 18px; font-weight:700; font-size:1.05em; color:#1a4a46;
+  min-height:66px; display:flex; align-items:center;
+  margin-bottom:16px; position:relative; line-height:1.5;
+}
+#speechBubble::before{content:'💬';position:absolute;top:-16px;left:18px;font-size:1.3em}
+#numberDisplay{
+  min-height:90px; display:flex; align-items:center;
+  justify-content:center; margin:10px 0; gap:10px; flex-wrap:wrap;
+}
+.num-bubble{
+  font-family:'Bubblegum Sans',cursive; font-size:3.6em;
+  width:100px; height:100px;
+  background:linear-gradient(135deg,#D0F7F2,#B8F0E8);
+  border:4px solid var(--teal); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:#007a72;
+  box-shadow:0 4px 16px rgba(0,180,166,0.22);
+  animation:numPop .45s cubic-bezier(0.34,1.56,0.64,1);
+}
+.num-bubble.answer{
+  background:linear-gradient(135deg,#FFF4E0,#FFE8B8);
+  border-color:var(--coral); color:#b83a1a;
+}
+@keyframes numPop{0%{transform:scale(0) rotate(-15deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+.answer-wrap{text-align:center}
+.answer-label{font-family:'Bubblegum Sans',cursive;font-size:1.1em;color:#777;margin-bottom:10px}
+.arrow-row{display:flex;align-items:center;gap:14px;justify-content:center}
+.arr{font-size:2.2em;color:var(--purple)}
+#parentNote{
+  display:none; background:#FFFDE7; border-left:5px solid var(--yellow);
+  border-radius:12px; padding:11px 15px;
+  font-size:.88em; color:#665500; margin-top:12px; line-height:1.5;
+}
+
+/* ── ACTIVITY PANEL ── */
+#activityPanel{
+  display:none; background:var(--card); border-radius:var(--radius);
+  padding:22px; box-shadow:var(--shadow); margin-bottom:14px;
+}
+.act-title{font-family:'Bubblegum Sans',cursive;font-size:1.5em;color:var(--teal);text-align:center;margin-bottom:18px}
+.act-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:460px){.act-grid{grid-template-columns:1fr}}
+.act-box{
+  background:linear-gradient(135deg,#E8FFFB,#D0F7F2);
+  border:3px solid var(--teal); border-radius:18px;
+  padding:20px 16px; text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.act-label{font-family:'Bubblegum Sans',cursive;font-size:1.25em;color:#1a4a46;line-height:1.4}
+.start-num{
+  display:inline-block; font-size:1.5em; color:#007a72;
+  background:white; border:2.5px solid var(--teal);
+  border-radius:50%; width:52px; height:52px;
+  line-height:48px; text-align:center; margin-top:6px;
+}
+.answer-input{
+  font-family:'Bubblegum Sans',cursive; font-size:2em; color:var(--coral);
+  background:white; border:3px solid var(--coral);
+  border-radius:14px; width:64px; height:64px;
+  text-align:center; outline:none;
+  transition:border-color .2s,box-shadow .2s;
+  -moz-appearance:textfield;
+}
+.answer-input::-webkit-inner-spin-button,
+.answer-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.answer-input:focus{border-color:var(--purple);box-shadow:0 0 0 4px rgba(155,114,207,.2)}
+.answer-input.wrong{border-color:#f44336;animation:shake .45s}
+.answer-input.correct{border-color:var(--green);background:#F0FFF4;color:#2a8a3a}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.check-btn{
+  background:linear-gradient(135deg,var(--teal),#008f84);
+  color:white; border:none; border-radius:50px;
+  padding:13px 36px; font-family:'Bubblegum Sans',cursive; font-size:1.15em;
+  cursor:pointer; display:block; margin:0 auto;
+  box-shadow:0 4px 16px rgba(0,180,166,.35); transition:transform .15s;
+}
+.check-btn:hover{transform:scale(1.05)}
+.check-btn:active{transform:scale(.97)}
+.act-parent-note{
+  background:#FFFDE7; border-left:5px solid var(--yellow);
+  border-radius:12px; padding:10px 14px;
+  font-size:.88em; color:#665500; margin-top:14px; line-height:1.5;
+}
+
+/* ── CONFETTI ── */
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:999}
+.cp{position:absolute;border-radius:2px;animation:fall 3s ease-in forwards}
+@keyframes fall{0%{opacity:1;transform:translateY(-20px) rotate(0deg)}100%{opacity:0;transform:translateY(100vh) rotate(720deg)}}
+
+/* ── PASSWORD SCREEN ── */
+/* Simple block approach — no position:fixed, no z-index overlay issues */
+#pw-screen{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  padding:24px;
+  min-height:100vh;
+  background:linear-gradient(135deg,#00B4A6,#45B7FF);
+  box-sizing:border-box;
+}
+.pw-logo{font-family:'Bubblegum Sans',cursive;font-size:clamp(1.6em,6vw,2.8em);
+  color:white;text-align:center;text-shadow:2px 2px 0 rgba(0,0,0,0.18);}
+.pw-school{font-size:clamp(1em,3.5vw,1.5em);color:rgba(255,255,255,0.92);
+  font-weight:800;text-align:center;margin-top:-10px;}
+.pw-box{background:white;border-radius:22px;padding:28px 24px;
+  width:min(92vw,420px);box-shadow:0 16px 50px rgba(0,0,0,0.26);
+  display:flex;flex-direction:column;align-items:center;gap:16px;}
+.pw-box h2{font-family:'Bubblegum Sans',cursive;font-size:1.35em;
+  color:#00B4A6;text-align:center;}
+.pw-box p{font-size:.9em;color:#777;font-weight:600;text-align:center;line-height:1.5;}
+#pw-input{width:100%;padding:14px 18px;border:3px solid #00B4A6;border-radius:14px;
+  font-family:'Bubblegum Sans',cursive;font-size:1.4em;text-align:center;
+  letter-spacing:4px;outline:none;transition:border-color .2s;color:#005c55;}
+#pw-input:focus{border-color:#45B7FF;}
+#pw-input.wrong{border-color:#f44336;animation:shake .4s ease-in-out;}
+#pw-btn{background:linear-gradient(135deg,#00B4A6,#45B7FF);color:white;
+  border:none;border-radius:50px;padding:13px 40px;
+  font-family:'Bubblegum Sans',cursive;font-size:1.2em;cursor:pointer;
+  width:100%;box-shadow:0 4px 16px rgba(0,180,166,.35);transition:transform .15s;}
+#pw-btn:hover{transform:scale(1.04);}
+#pw-error{color:#E74C3C;font-weight:800;font-size:.95em;
+  text-align:center;display:none;}
+.pw-footer{font-size:.78em;color:rgba(255,255,255,.75);text-align:center;}
+/* App is hidden until password is correct */
+#app{display:none;}
+/* ── SCHOOL BRAND BADGE ── */
+#brand-badge{
+  background:rgba(255,255,255,0.18);border-radius:50px;
+  padding:4px 14px;font-size:clamp(.7em,2vw,.85em);
+  color:white;font-weight:800;white-space:nowrap;flex-shrink:0;
+  border:1.5px solid rgba(255,255,255,.35);letter-spacing:.3px;
+}
+
+/* ── STANDARDISED FEEDBACK FORM ── */
+#akili-fb-section{
+  display:none;width:100%;
+  background:linear-gradient(155deg,#fff9f0,#fffbe8);
+  border-radius:22px;padding:26px 24px 22px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.14);
+  margin-top:14px;font-family:'Nunito',sans-serif;
+}
+#akili-fb-section h2{font-family:'Fredoka One',cursive;font-size:1.55em;color:#00B4A6;margin-bottom:4px;}
+#akili-fb-section .asub{font-size:13px;color:#888;font-weight:600;margin-bottom:18px;}
+.afrow{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+@media(max-width:500px){.afrow{grid-template-columns:1fr;}}
+.afg{margin-bottom:15px;}
+.afg label{display:block;font-weight:800;color:#444;margin-bottom:6px;font-size:.9em;}
+.afg input,.afg select,.afg textarea{
+  width:100%;padding:10px 13px;border:2px solid #ddd;border-radius:11px;
+  font-family:'Nunito',sans-serif;font-size:.95em;
+  outline:none;background:white;transition:border-color .2s;
+}
+.afg input:focus,.afg select:focus,.afg textarea:focus{border-color:#00B4A6;}
+.afg textarea{min-height:72px;resize:vertical;}
+.afstars{display:flex;gap:8px;font-size:1.85em;cursor:pointer;margin-top:3px;}
+.afstar{color:#ddd;transition:color .15s,transform .15s;user-select:none;}
+.afstar:hover,.afstar.on{color:#FFD700;}
+.afstar:hover{transform:scale(1.2);}
+.afsub-btn{
+  background:linear-gradient(135deg,#00B4A6,#00B4A6cc);
+  color:white;border:none;border-radius:50px;
+  padding:14px 48px;font-family:'Fredoka One',cursive;font-size:1.2em;
+  cursor:pointer;display:block;margin:22px auto 0;
+  box-shadow:0 6px 20px rgba(0,0,0,0.18);transition:transform .15s;
+}
+.afsub-btn:hover{transform:scale(1.05);}
+#akili-fb-thanks{display:none;text-align:center;padding:22px 10px;}
+#akili-fb-thanks h3{font-family:'Fredoka One',cursive;font-size:1.85em;color:#00B4A6;margin-bottom:10px;}
+
+</style>
+</head>
+<body>
+
+
+<!-- ══ PASSWORD SCREEN ══ -->
+<div id="pw-screen">
+  <div class="pw-logo">🐶 Make a Number Less!</div>
+  <div class="pw-school">Akili Learning · Balmoral Primary · Grade 1</div>
+  <div class="pw-box">
+    <h2>🔒 Enter this month's password</h2>
+    <p>Ask your teacher or check the Akili Learning message for the password. It changes every month.</p>
+    <input id="pw-input" type="password" placeholder="••••••••"
+           maxlength="20" autocomplete="off"
+           onkeydown="if(event.key==='Enter')checkPassword()">
+    <div id="pw-error">❌ Incorrect password — please try again</div>
+    <button id="pw-btn" onclick="checkPassword()">▶ Unlock Lesson</button>
+  </div>
+  <div class="pw-footer">🏫 Balmoral Primary · Grade 1 Mathematics<br>© Akili Learning</div>
+</div>
+
+<div id="app" style="display:none;">
+
+<div id="header">
+  <div style="flex:1">
+    <h1>🐶 Make a Number Less!</h1>
+    <div id="progressWrap"><div id="progressBar"></div></div>
+  </div>
+  <div id="brand-badge">🏫 Balmoral Primary · <span id="month-label"></span></div>
+  <button id="backBtn"  class="ctrl-btn" onclick="goBack()">⏮ Back</button>
+  <button id="pauseBtn" class="ctrl-btn" onclick="togglePause()">⏸ Pause</button>
+</div>
+
+<div id="mainContent">
+
+  <!-- Puppy -->
+  <div style="position:relative">
+    <div id="puppyCard">
+      <div id="puppyWrap">
+      <svg id="puppySvg" viewBox="0 0 200 270" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+
+        <!-- Tail -->
+        <path id="tail" d="M 148 215 Q 182 200 178 170 Q 175 152 162 150"
+              stroke="#A0622A" stroke-width="13" fill="none" stroke-linecap="round"/>
+        <!-- Body -->
+        <ellipse cx="100" cy="210" rx="60" ry="55" fill="#C8813A"/>
+        <!-- Belly patch -->
+        <ellipse cx="100" cy="218" rx="40" ry="37" fill="#F5DEB3"/>
+        <!-- Head -->
+        <circle cx="100" cy="112" r="52" fill="#C8813A"/>
+        <!-- Floppy left ear -->
+        <ellipse cx="58" cy="128" rx="20" ry="30" fill="#A0622A" transform="rotate(-10 58 128)"/>
+        <ellipse cx="58" cy="130" rx="13" ry="23" fill="#8B4E1F" opacity=".55" transform="rotate(-10 58 130)"/>
+        <!-- Floppy right ear -->
+        <ellipse cx="142" cy="128" rx="20" ry="30" fill="#A0622A" transform="rotate(10 142 128)"/>
+        <ellipse cx="142" cy="130" rx="13" ry="23" fill="#8B4E1F" opacity=".55" transform="rotate(10 142 130)"/>
+        <!-- Muzzle -->
+        <ellipse cx="100" cy="128" rx="26" ry="19" fill="#F5DEB3"/>
+        <!-- Nose -->
+        <ellipse cx="100" cy="118" rx="11" ry="8"  fill="#2D1A0E"/>
+        <ellipse cx="100" cy="118" rx="9"  ry="6.2" fill="#1A0A00"/>
+        <ellipse cx="96"  cy="115" rx="3.5" ry="2.2" fill="white" opacity=".55"/>
+        <!-- Eyes -->
+        <ellipse cx="80"  cy="103" rx="12" ry="13" fill="white"/>
+        <ellipse cx="120" cy="103" rx="12" ry="13" fill="white"/>
+        <circle  cx="81"  cy="104" r="8"  fill="#2D1B4E"/>
+        <circle  cx="121" cy="104" r="8"  fill="#2D1B4E"/>
+        <circle  cx="81"  cy="104" r="5"  fill="#1A0F2E"/>
+        <circle  cx="121" cy="104" r="5"  fill="#1A0F2E"/>
+        <circle  cx="84"  cy="101" r="3"  fill="white"/>
+        <circle  cx="124" cy="101" r="3"  fill="white"/>
+        <!-- Eyebrows -->
+        <path d="M 72 94 Q 80 90 88 93"   stroke="#6B3E10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M 112 93 Q 120 90 128 94" stroke="#6B3E10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- Cheeks -->
+        <ellipse cx="68"  cy="115" rx="11" ry="6.5" fill="#FF9AA2" opacity=".35"/>
+        <ellipse cx="132" cy="115" rx="11" ry="6.5" fill="#FF9AA2" opacity=".35"/>
+
+        <!-- MOUTH — closed (default, shown when not talking) -->
+        <g id="pipMouthClosed">
+          <path d="M 91 135 Q 100 143 109 135" stroke="#8B5E3C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="100" cy="140" rx="7" ry="5" fill="#FF8FA3"/>
+          <line x1="100" y1="138" x2="100" y2="145" stroke="#FF6B85" stroke-width="1.5" opacity=".7"/>
+        </g>
+        <!-- MOUTH — open (shown during speech) -->
+        <g id="pipMouthOpen" style="display:none">
+          <path d="M 88 133 Q 100 150 112 133" stroke="#8B5E3C" stroke-width="2" fill="#5C2800" stroke-linecap="round"/>
+          <ellipse cx="100" cy="140" rx="14" ry="9" fill="#4A1800"/>
+          <ellipse cx="100" cy="144" rx="9"  ry="5" fill="#FF8FA3"/>
+          <line x1="100" y1="142" x2="100" y2="149" stroke="#FF6B85" stroke-width="1.5" opacity=".7"/>
+        </g>
+
+        <!-- Collar -->
+        <rect x="72" y="157" width="56" height="12" rx="6" fill="#FF6B4A"/>
+        <circle cx="100" cy="163" r="5" fill="#FFD93D"/>
+
+        <!-- ARMS drawn last for z-order -->
+        <g id="leftArm">
+          <rect x="40" y="168" width="23" height="54" rx="11.5" fill="#C8813A"/>
+          <circle cx="51.5" cy="225" r="16"   fill="#C8813A"/>
+          <circle cx="51.5" cy="227" r="11.5" fill="#E8A870"/>
+          <ellipse cx="47"   cy="232" rx="4.5" ry="3.2" fill="#D4935A"/>
+          <ellipse cx="56"   cy="232" rx="4.5" ry="3.2" fill="#D4935A"/>
+          <ellipse cx="51.5" cy="227" rx="3.5" ry="2.8" fill="#D4935A"/>
+        </g>
+        <g id="rightArm">
+          <rect x="137" y="168" width="23" height="54" rx="11.5" fill="#C8813A"/>
+          <circle cx="148.5" cy="225" r="16"   fill="#C8813A"/>
+          <circle cx="148.5" cy="227" r="11.5" fill="#E8A870"/>
+          <ellipse cx="144"   cy="232" rx="4.5" ry="3.2" fill="#D4935A"/>
+          <ellipse cx="153"   cy="232" rx="4.5" ry="3.2" fill="#D4935A"/>
+          <ellipse cx="148.5" cy="227" rx="3.5" ry="2.8" fill="#D4935A"/>
+        </g>
+
+      </svg>
+      <div id="bubbleOverlay"></div>
+      </div>
+
+      <div id="fingerDisplay"></div>
+      <div id="headBanner">🧠 Put it in your head!</div>
+    </div>
+  </div>
+
+  <!-- Lesson panel -->
+  <div id="lessonPanel">
+    <div id="speechBubble">Getting ready… 🐶</div>
+    <div id="numberDisplay"></div>
+    <div id="parentNote"></div>
+  </div>
+
+</div>
+
+<!-- Activity panel -->
+<div id="activityPanel"></div>
+
+<!-- Feedback section -->
+<div id="akili-fb-section" style="display:none;"></div>
+
+</div>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PASSWORD & BRANDING — Change MONTHLY_PASSWORD each month
+   e.g. April=BP04, May=BP05, June=BP06, July=BP07 ...
+═══════════════════════════════════════════════════════════ */
+const MONTHLY_PASSWORD = 'BP04';   // ← Change this every month
+
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+// Lesson waits here until the correct password is entered
+var _pwResolve = null;
+
+function checkPassword(){
+  const val = document.getElementById('pw-input').value.trim();
+  const err = document.getElementById('pw-error');
+  if(val === MONTHLY_PASSWORD){
+    // Unlock speech synchronously on user gesture — must be before any await
+    if(window.speechSynthesis){
+      const u=new SpeechSynthesisUtterance(' ');u.volume=0;u.rate=2;
+      speechSynthesis.speak(u);
+    }
+    // Hide password screen, reveal app
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    startLesson();
+  } else {
+    err.style.display = 'block';
+    const inp = document.getElementById('pw-input');
+    inp.value = '';
+    inp.classList.add('wrong');
+    setTimeout(()=>inp.classList.remove('wrong'), 600);
+    inp.focus();
+  }
+}
+
+// Set month label in header badge
+(function(){
+  var m = new Date().getMonth();
+  var el = document.getElementById('month-label');
+  if(el) el.textContent = MONTHS[m] + ' ' + new Date().getFullYear();
+})();
+
+/* ══════════════ AUDIO ══════════════ */
+let actx=null;
+function initAudio(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();}
+
+function playBubble(){
+  initAudio();
+  for(let i=0;i<7;i++){
+    setTimeout(()=>{
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.connect(g);g.connect(actx.destination);
+      const t=actx.currentTime;
+      o.frequency.setValueAtTime(900-i*85,t);
+      o.frequency.exponentialRampToValueAtTime(160,t+.34);
+      g.gain.setValueAtTime(.13,t);g.gain.exponentialRampToValueAtTime(.001,t+.34);
+      o.type='sine';o.start(t);o.stop(t+.35);
+    },i*215);
+  }
+  spawnBubbles();
+}
+function spawnBubbles(){
+  const ov=document.getElementById('bubbleOverlay');ov.innerHTML='';
+  const c=['#00B4A6','#45B7FF','#FFD93D','#6BCB77','#FF6B4A','#9B72CF'];
+  for(let i=0;i<14;i++){
+    const d=document.createElement('div');d.className='bubble-dot';
+    const sz=6+Math.random()*14;
+    d.style.cssText=`width:${sz}px;height:${sz}px;background:${c[i%c.length]};
+      left:${10+Math.random()*170}px;top:${30+Math.random()*100}px;
+      animation-delay:${Math.random()*.9}s;`;
+    ov.appendChild(d);
+  }
+  setTimeout(()=>{ov.innerHTML=''},3200);
+}
+function playCelebration(){
+  initAudio();
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>{
+    setTimeout(()=>{
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.connect(g);g.connect(actx.destination);
+      const t=actx.currentTime;
+      o.frequency.value=f;o.type='triangle';
+      g.gain.setValueAtTime(.14,t);g.gain.exponentialRampToValueAtTime(.001,t+.55);
+      o.start(t);o.stop(t+.56);
+    },i*145);
+  });
+}
+
+/* ══════════════ LIP SYNC ══════════════ */
+let lipTimer=null,lipState=false;
+function startLipSync(){
+  stopLipSync();
+  lipState=false;
+  lipTimer=setInterval(()=>{
+    lipState=!lipState;
+    const open=document.getElementById('pipMouthOpen');
+    const closed=document.getElementById('pipMouthClosed');
+    if(open&&closed){
+      open.style.display  = lipState?'block':'none';
+      closed.style.display= lipState?'none':'block';
+    }
+  },135);
+}
+function stopLipSync(){
+  if(lipTimer){clearInterval(lipTimer);lipTimer=null;}
+  const open=document.getElementById('pipMouthOpen');
+  const closed=document.getElementById('pipMouthClosed');
+  if(open&&closed){open.style.display='none';closed.style.display='block';}
+}
+
+/* ══════════════ SPEECH ══════════════ */
+let voices=[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function loadVoices(){
+  for(let i=0;i<50;i++){
+    voices=speechSynthesis.getVoices();
+    if(voices.length>0)return;
+    await sleep(100);
+  }
+}
+if('speechSynthesis' in window){
+  speechSynthesis.addEventListener('voiceschanged',()=>{voices=speechSynthesis.getVoices();});
+}
+
+function speak(text,rate=0.82,pitch=1.30){
+  return new Promise(resolve=>{
+    if(!text||!('speechSynthesis' in window)){setTimeout(resolve,600);return;}
+    // Safety timeout — if onend never fires (common on Android), move on anyway
+    const safetyMs = Math.max(4000, text.split(' ').length * 600);
+    let done = false;
+    function finish(){ if(done)return; done=true; clearTimeout(safety); stopLipSync(); resolve(); }
+    const safety = setTimeout(finish, safetyMs);
+    speechSynthesis.cancel();
+    // 50ms delay after cancel — fixes silent audio bug on Android Chrome
+    setTimeout(()=>{
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=rate; u.pitch=pitch;
+      const want=['Samantha','Karen','Serena','Moira','Tessa','Victoria'];
+      u.voice=voices.find(v=>want.some(w=>v.name.includes(w)))
+             ||voices.find(v=>v.lang==='en-US')
+             ||voices.find(v=>v.lang.startsWith('en'))
+             ||voices[0]||null;
+      startLipSync();
+      u.onend=finish;
+      u.onerror=finish;
+      speechSynthesis.speak(u);
+    }, 50);
+  });
+}
+
+/* ══════════════ PAUSE / PLAY ══════════════ */
+let isPaused=false;
+function updatePauseBtn(){
+  const b=document.getElementById('pauseBtn');
+  if(isPaused){b.textContent='▶ Play';b.classList.add('paused');}
+  else{b.textContent='⏸ Pause';b.classList.remove('paused');}
+}
+function togglePause(){
+  initAudio();
+  isPaused=!isPaused;
+  if(isPaused){speechSynthesis.pause();stopLipSync();}
+  else speechSynthesis.resume();
+  updatePauseBtn();
+}
+async function waitIfPaused(ver){
+  while(isPaused&&lessonVer===ver)await sleep(200);
+}
+
+/* ══════════════ HELPERS ══════════════ */
+function setPuppy(s){document.getElementById('puppySvg').className=s||'neutral';}
+function setFingers(n){document.getElementById('fingerDisplay').textContent=n===1?'☝️':n===2?'✌️':'';}
+function showHeadBanner(on){document.getElementById('headBanner').style.display=on?'block':'none';}
+function setBubble(t){document.getElementById('speechBubble').textContent=t;}
+function setNum(n){
+  const d=document.getElementById('numberDisplay');
+  if(n===null||n===undefined){d.innerHTML='';return;}
+  d.innerHTML=`<div class="num-bubble">${n}</div>`;
+}
+function setAnswer(startNum,less,ans){
+  document.getElementById('numberDisplay').innerHTML=`
+    <div class="answer-wrap">
+      <div class="answer-label">${less} less than ${startNum} is</div>
+      <div class="arrow-row">
+        <div class="num-bubble" style="font-size:2.8em;width:84px;height:84px">${startNum}</div>
+        <span class="arr">→</span>
+        <div class="num-bubble answer" style="font-size:2.8em;width:84px;height:84px">${ans}</div>
+      </div>
+    </div>`;
+}
+function clearNum(){document.getElementById('numberDisplay').innerHTML='';}
+function showNote(txt){
+  const n=document.getElementById('parentNote');
+  n.innerHTML='👨‍👩‍👧 <strong>Parents:</strong> '+txt;
+  n.style.display='block';
+}
+function hideNote(){document.getElementById('parentNote').style.display='none';}
+
+/* ══════════════ LESSON STEPS ══════════════ */
+const STEPS=[
+
+  // ── Intro ──
+  {puppy:'celebrate',num:null,fingers:0,
+   text:"Hello! I'm Pip the Puppy! 🐶",
+   speech:"Hello there! I am Pip, the Puppy! Oh, I am SO happy to see you today!"},
+
+  {puppy:'celebrate',num:null,fingers:0,
+   text:"Today we learn to make numbers LESS! 🎉",
+   speech:"Today, we are going to learn something really exciting! We are going to learn how to make numbers LESS! We will start by making each number... one less. Are you ready? Let us get started!"},
+
+  {puppy:'point-head',num:null,fingers:0,head:true,
+   text:"Secret strategy: put the number in your HEAD! 🧠",
+   speech:"Here is our secret strategy. We are going to put the number, right here... in our HEAD! Can you tap your head, just like me?"},
+
+  // ── 1 LESS — demo 1: 1 less than 3 ──
+  {puppy:'neutral',num:null,fingers:0,
+   text:"Let's try: 1 less than 3",
+   speech:"Okay, let us try! One less than... three."},
+
+  {puppy:'point-head',num:3,fingers:0,bubble:true,head:true,
+   text:"THREE goes in our head! 🧠",
+   speech:"Put the number three... in our head!"},
+
+  {puppy:'point-and-show',num:3,fingers:1,
+   text:"1 finger… count back — TWO! ☝️",
+   speech:"Now, I hold up ONE finger. Three is in my head... and I count back. Two! One less than three, is TWO!"},
+
+  {puppy:'celebrate',answer:{a:3,less:1,ans:2},fingers:0,
+   text:"1 less than 3 is 2 🌟",
+   speech:"Yes! One less than three, is TWO! Wonderful!"},
+
+  // ── 1 LESS — demo 2: 1 less than 5 ──
+  {puppy:'neutral',num:null,fingers:0,
+   text:"Let's try another: 1 less than 5",
+   speech:"Great! Now let us try another one. One less than... five."},
+
+  {puppy:'point-head',num:5,fingers:0,bubble:true,head:true,
+   text:"FIVE goes in our head! 🧠",
+   speech:"Put the number five... in our head!"},
+
+  {puppy:'point-and-show',num:5,fingers:1,
+   text:"1 finger… count back — FOUR! ☝️",
+   speech:"ONE finger. Five is in my head... count back. Four! One less than five, is FOUR!"},
+
+  {puppy:'celebrate',answer:{a:5,less:1,ans:4},fingers:0,
+   text:"1 less than 5 is 4 🌟",
+   speech:"One less than five, is FOUR! Oh, you are doing SO well!"},
+
+  // ── ACTIVITY 1 ──
+  {puppy:'neutral',num:null,fingers:0,
+   note:"Please help your child use the strategy — put the number in their head, then count back 1.",
+   text:"Now let's see if you can do the next numbers by yourself! 😊",
+   speech:"Now, let us see if YOU can do the next numbers! Remember... put the number in your head first, then count back one. Mommy or Daddy will help you!"},
+
+  {type:'activity',less:1,nums:[6,4,7,2]},
+
+  // ── Transition ──
+  {puppy:'celebrate',num:null,fingers:0,
+   text:"You are AMAZING! Now let's try 2 LESS! 🎊",
+   speech:"FANTASTIC! You are absolutely amazing! Now, we are going to do the same thing... but this time, we count back TWO! Are you ready?"},
+
+  // ── 2 LESS — demo 1: 2 less than 3 ──
+  {puppy:'neutral',num:null,fingers:0,
+   text:"Let's try: 2 less than 3",
+   speech:"Let us try. Two less than... three."},
+
+  {puppy:'point-head',num:3,fingers:0,bubble:true,head:true,
+   text:"THREE goes in our head! 🧠",
+   speech:"Put the number three... in our head!"},
+
+  {puppy:'point-and-show',num:3,fingers:2,
+   text:"2 fingers… count back — two, one — ONE! ✌️",
+   speech:"Now, I hold up TWO fingers. Three is in my head... count back. Two... One! Two less than three, is ONE!"},
+
+  {puppy:'celebrate',answer:{a:3,less:2,ans:1},fingers:0,
+   text:"2 less than 3 is 1 🌟",
+   speech:"Two less than three, is ONE! Brilliant!"},
+
+  // ── 2 LESS — demo 2: 2 less than 5 ──
+  {puppy:'neutral',num:null,fingers:0,
+   text:"Let's try another: 2 less than 5",
+   speech:"Let us try another one. Two less than... five."},
+
+  {puppy:'point-head',num:5,fingers:0,bubble:true,head:true,
+   text:"FIVE goes in our head! 🧠",
+   speech:"Put the number five... in our head!"},
+
+  {puppy:'point-and-show',num:5,fingers:2,
+   text:"2 fingers… count back — four, three — THREE! ✌️",
+   speech:"TWO fingers. Five is in my head... count back. Four... Three! Two less than five, is THREE!"},
+
+  {puppy:'celebrate',answer:{a:5,less:2,ans:3},fingers:0,
+   text:"2 less than 5 is 3 🌟",
+   speech:"Two less than five, is THREE! You are doing an absolutely amazing job!"},
+
+  // ── ACTIVITY 2 ──
+  {puppy:'neutral',num:null,fingers:0,
+   note:"Please help your child — put the number in their head, hold up two fingers, and count back two.",
+   text:"Now let's make the following numbers 2 less by yourself! 😊",
+   speech:"Now let us see if you can make these numbers two less! Remember our strategy... put the number in your head, and count back two. You can do it!"},
+
+  {type:'activity',less:2,nums:[7,4,8,2]},
+
+  // ── Closing ──
+  {puppy:'celebrate',num:null,fingers:0,
+   text:"🎉 YOU ARE SUPER MATHEMATICIANS! 🎉",
+   speech:"WONDERFUL! You are absolutely SUPER mathematicians! Today, you learned how to make numbers one less... AND two less! I am so, so proud of you! WELL DONE! Give yourself a great big clap!"},
+
+  {type:'end'}
+];
+
+const TOTAL=STEPS.filter(s=>s.type!=='end').length;
+let currentStep=0,lessonVer=0,actResolve=null;
+
+function updateProgress(i){
+  document.getElementById('progressBar').style.width=Math.min(i/TOTAL*100,100)+'%';
+}
+
+/* ══════════════ BACK / REWIND ══════════════ */
+function goBack(){
+  initAudio();lessonVer++;
+  speechSynthesis.cancel();stopLipSync();
+  if(actResolve){actResolve('__abort__');actResolve=null;}
+  if(isPaused){isPaused=false;updatePauseBtn();}
+  showHeadBanner(false);
+  document.getElementById('activityPanel').style.display='none';
+  document.getElementById('lessonPanel').style.display='block';
+  setFingers(0);hideNote();clearNum();
+
+  let target=Math.max(0,currentStep-1);
+  while(target>0&&STEPS[target].type==='activity')target--;
+  currentStep=target;
+  setTimeout(()=>runLesson(lessonVer),100);
+}
+
+/* ══════════════ LESSON RUNNER ══════════════ */
+async function runLesson(ver){
+  for(let i=currentStep;i<STEPS.length;i++){
+    if(lessonVer!==ver)return;
+    currentStep=i;updateProgress(i);
+    const s=STEPS[i];
+    if(!s.type||s.type==='scene') await runScene(s,ver);
+    else if(s.type==='activity'){
+      const res=await runActivity(s,ver);
+      if(res==='__abort__'||lessonVer!==ver)return;
+    } else if(s.type==='end'){
+      updateProgress(TOTAL);await sleep(600);akiliInitFeedback();return;
+    }
+    if(lessonVer!==ver)return;
+    await sleep(420);
+  }
+}
+
+async function runScene(s,ver){
+  if(lessonVer!==ver)return;
+  await waitIfPaused(ver);
+  if(lessonVer!==ver)return;
+
+  setPuppy(s.puppy||'neutral');
+  setFingers(s.fingers||0);
+  setBubble(s.text||'');
+  if(s.note)showNote(s.note);else hideNote();
+
+  // Show head banner if this is a "put in head" step
+  if(s.head)showHeadBanner(true);else showHeadBanner(false);
+
+  if(s.answer){
+    clearNum();await sleep(180);
+    setAnswer(s.answer.a,s.answer.less,s.answer.ans);
+    playCelebration();
+  } else if(s.num!==null&&s.num!==undefined){
+    setNum(s.num);
+  } else {
+    clearNum();
+  }
+
+  if(s.bubble){playBubble();await sleep(1800);}
+  if(lessonVer!==ver)return;
+  await waitIfPaused(ver);
+  if(lessonVer!==ver)return;
+  await speak(s.speech||s.text);
+
+  // Hide head banner after speech finishes
+  if(s.head)showHeadBanner(false);
+  await sleep(320);
+}
+
+/* ══════════════ ACTIVITY ══════════════ */
+async function runActivity(s,ver){
+  document.getElementById('lessonPanel').style.display='none';
+  const ap=document.getElementById('activityPanel');
+  ap.style.display='block';
+  hideNote();clearNum();showHeadBanner(false);
+
+  const lc=s.less;
+  const icon=lc===1?'☝️':'✌️';
+  const lessWord=lc===1?'1 less':'2 less';
+
+  ap.innerHTML=`
+    <div class="act-title">${icon} How many is <span style="color:var(--coral)">${lessWord}</span> than…?</div>
+    <div class="act-grid" id="actGrid"></div>
+    <button class="check-btn" id="checkBtn">✓ Check My Answers!</button>
+    <div class="act-parent-note">
+      👨‍👩‍👧 <strong>Parents:</strong> Please help your child — put the number in their head
+      and count back ${lc===1?'one':'two'}. Encourage them to try again if they need to.
+    </div>`;
+
+  const grid=document.getElementById('actGrid');
+  s.nums.forEach((n,idx)=>{
+    const box=document.createElement('div');box.className='act-box';
+    box.innerHTML=`
+      <div class="act-label">
+        ${lc} less than<br>
+        <span class="start-num">${n}</span>
+      </div>
+      <input type="number" class="answer-input" id="ai_${idx}"
+             data-ans="${n-lc}" placeholder="?" min="0" max="20">`;
+    grid.appendChild(box);
+  });
+
+  document.getElementById('checkBtn').onclick=()=>checkAnswers(lc,ver);
+
+  setPuppy('neutral');setFingers(lc);
+  setBubble(`Your turn! ${icon} Put the number in your head and count back ${lessWord}!`);
+
+  if(lessonVer!==ver)return '__abort__';
+  await speak(`Now it is YOUR turn! Put the number in your head, hold up ${lc===1?'one finger':'two fingers'}, and count back. Ask your parent for help if you need it!`);
+  if(lessonVer!==ver)return '__abort__';
+
+  const result=await new Promise(r=>{actResolve=r;});
+  actResolve=null;
+  if(result==='__abort__')return '__abort__';
+
+  ap.style.display='none';
+  document.getElementById('lessonPanel').style.display='block';
+  setFingers(0);
+  return 'done';
+}
+
+async function checkAnswers(lc,ver){
+  const inputs=document.querySelectorAll('.answer-input');
+  let allOk=true;
+  inputs.forEach(inp=>{
+    if(inp.disabled)return;
+    const val=parseInt(inp.value),ans=parseInt(inp.dataset.ans);
+    if(isNaN(val)||val!==ans){
+      allOk=false;
+      inp.classList.remove('correct');inp.classList.add('wrong');
+      setTimeout(()=>{inp.classList.remove('wrong');inp.value='';},850);
+    } else {
+      inp.classList.remove('wrong');inp.classList.add('correct');inp.disabled=true;
+    }
+  });
+  if(allOk){
+    playCelebration();confetti();
+    setPuppy('celebrate');
+    setBubble("🎉 Amazing! All correct! You are SO clever!");
+    await speak("Amazing! All correct! You are SO, SO clever! Well done! Give yourself a great big thumbs up!");
+    await sleep(1600);
+    if(actResolve){actResolve('done');actResolve=null;}
+  } else {
+    setPuppy('neutral');
+    setBubble("Not quite! Put the number in your head and try again! 💪");
+    await speak("Not quite right! Put the number in your head first... then count back. Ask your parent to help you, and try again. You can do it!");
+  }
+}
+
+/* ══════════════ FEEDBACK ══════════════ */
+function confetti(){
+  const cols=['#00B4A6','#45B7FF','#FFD93D','#6BCB77','#FF6B4A','#9B72CF'];
+  const wrap=document.createElement('div');wrap.className='confetti-wrap';
+  document.body.appendChild(wrap);
+  for(let i=0;i<55;i++){
+    const p=document.createElement('div');p.className='cp';
+    p.style.cssText=`left:${Math.random()*100}%;top:-24px;
+      background:${cols[i%cols.length]};
+      width:${7+Math.random()*10}px;height:${7+Math.random()*10}px;
+      border-radius:${Math.random()>.5?'50%':'3px'};
+      animation-delay:${Math.random()*1.6}s;
+      animation-duration:${2.2+Math.random()*1.5}s;`;
+    wrap.appendChild(p);
+  }
+  setTimeout(()=>wrap.remove(),5500);
+}
+
+/* ══════════════ START ══════════════ */
+// startLesson() called by checkPassword() — NOT auto on load
+async function startLesson(){
+  initAudio();
+  showHeadBanner(false);
+  await loadVoices();
+  await sleep(300);
+  const ver=lessonVer;
+  runLesson(ver);
+}
+// ══ AKILI FEEDBACK SUBMIT ══
+function akiliInitFeedback(){
+  var months = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+  var mn = months[new Date().getMonth()] + ' ' + new Date().getFullYear();
+  var todayVal = new Date().toISOString().slice(0,10);
+  var el = document.getElementById('akili-fb-section');
+  if(!el) return;
+
+  el.innerHTML = `
+  <h2>📋 Parent Feedback for the Teacher</h2>
+  <p class="asub">Akili Learning · Balmoral Primary · Grade 1 · Make a Number Less · ${mn}</p>
+  <div class="afrow">
+    <div class="afg"><label>Child's Full Name</label>
+      <input type="text" id="af-child" placeholder="Child's name"></div>
+    <div class="afg"><label>Parent / Guardian Name</label>
+      <input type="text" id="af-parent" placeholder="Your name"></div>
+  </div>
+  <div class="afrow">
+    <div class="afg"><label>Class</label>
+      <select id="af-class">
+        <option value="">Select class…</option>
+        <option>Grade 1A</option><option>Grade 1B</option>
+        <option>Grade 1C</option><option>Grade 1D</option><option>Other</option>
+      </select></div>
+    <div class="afg"><label>Date Completed</label>
+      <input type="date" id="af-date" value="${todayVal}"></div>
+  </div>
+  <div class="afrow">
+    <div class="afg"><label>Lesson Completion</label>
+      <select id="af-completion">
+        <option value="">Select…</option>
+        <option>✅ Completed the full lesson</option>
+        <option>⏸ Completed with many pauses</option>
+        <option>🔄 Did not complete — will retry</option>
+      </select></div>
+    <div class="afg"><label>How long did it take?</label>
+      <select id="af-time">
+        <option value="">Select…</option>
+        <option>⚡ Under 15 minutes</option>
+        <option>⏱ 15–30 minutes</option>
+        <option>🕐 Over 30 minutes</option>
+      </select></div>
+  </div>
+  <div class="afrow">
+    <div class="afg"><label>Attempts needed for activities?</label>
+      <select id="af-attempts">
+        <option value="">Select…</option>
+        <option>✨ Got it first try</option>
+        <option>👍 Needed 2–3 tries</option>
+        <option>🤝 Needed a lot of help</option>
+      </select></div>
+    <div class="afg"><label>Did you revise this week?</label>
+      <select id="af-revision">
+        <option value="">Select…</option>
+        <option>✅ Yes — every day</option>
+        <option>👍 Yes — a few times</option>
+        <option>🔄 Not yet — will start</option>
+        <option>❌ No</option>
+      </select></div>
+  </div>
+  <div class="afrow">
+    <div class="afg"><label>Understanding of "1 less" ⭐</label>
+      <div class="afstars" id="af-stars1">
+        <span class="afstar" data-v="1">★</span><span class="afstar" data-v="2">★</span>
+        <span class="afstar" data-v="3">★</span><span class="afstar" data-v="4">★</span><span class="afstar" data-v="5">★</span>
+      </div></div>
+    <div class="afg"><label>Understanding of "2 less" ⭐</label>
+      <div class="afstars" id="af-stars2">
+        <span class="afstar" data-v="1">★</span><span class="afstar" data-v="2">★</span>
+        <span class="afstar" data-v="3">★</span><span class="afstar" data-v="4">★</span><span class="afstar" data-v="5">★</span>
+      </div></div>
+  </div>
+  <div class="afg"><label>Did your child use the "put it in your head" strategy?</label>
+    <select id="af-strategy">
+      <option value="">Select…</option>
+      <option>✨ Yes — both 1 less and 2 less</option>
+      <option>👍 For 1 less only</option>
+      <option>🤔 Not consistently</option>
+      <option>❓ Not sure</option>
+    </select></div>
+  <div class="afg"><label>Comments or Questions for the Teacher</label>
+    <textarea id="af-comments" placeholder="Share any observations or questions…"></textarea></div>
+  <button class="afsub-btn" onclick="akiliSubmitFeedback()">📤 Submit Feedback via WhatsApp</button>
+  <div id="akili-fb-thanks" style="display:none;text-align:center;padding:22px 10px;">
+    <div style="font-size:3em;">✅</div>
+    <h3 style="font-family:'Bubblegum Sans',cursive;color:var(--teal);margin:8px 0;">Thank You!</h3>
+    <p style="color:#666;">Your feedback has been sent. Thank you for supporting your child! 💕</p>
+    <p style="font-size:2em;margin-top:8px;">⭐ 🎊 🌟</p>
+  </div>`;
+
+  el.style.display = 'block';
+
+  // Wire star groups
+  ['af-stars1','af-stars2'].forEach(function(gid){
+    var grp = document.getElementById(gid);
+    if(!grp) return;
+    grp.querySelectorAll('.afstar').forEach(function(st){
+      st.onclick = function(){
+        var v = parseInt(st.dataset.v);
+        grp.querySelectorAll('.afstar').forEach(function(s,i){
+          s.classList.toggle('on', i < v);
+        });
+      };
+    });
+  });
+
+  setTimeout(function(){ el.scrollIntoView({behavior:'smooth',block:'start'}); }, 300);
+}
+
+function akiliSubmitFeedback(){
+  var child    = (document.getElementById('af-child')||{}).value||'';
+  var parent   = (document.getElementById('af-parent')||{}).value||'';
+  var cls      = (document.getElementById('af-class')||{}).value||'(not selected)';
+  var date     = (document.getElementById('af-date')||{}).value||'';
+  var comp     = (document.getElementById('af-completion')||{}).value||'(not selected)';
+  var time     = (document.getElementById('af-time')||{}).value||'(not selected)';
+  var attempts = (document.getElementById('af-attempts')||{}).value||'(not selected)';
+  var revision = (document.getElementById('af-revision')||{}).value||'(not selected)';
+  var comments = (document.getElementById('af-comments')||{}).value||'';
+  var s1=0, s2=0;
+  document.querySelectorAll('#af-stars1 .afstar').forEach(function(s,i){ if(s.classList.contains('on')) s1=i+1; });
+  document.querySelectorAll('#af-stars2 .afstar').forEach(function(s,i){ if(s.classList.contains('on')) s2=i+1; });
+  var strategy = (document.getElementById('af-strategy')||{}).value||'(not selected)';
+  var extra = '⭐ 1-less rating: '+(s1?s1+'/5':'Not rated')+'\n'+
+              '⭐ 2-less rating: '+(s2?s2+'/5':'Not rated')+'\n'+
+              '🧠 Strategy: '+strategy+'\n';
+  var msg =
+    '📋 *Akili Learning — Parent Feedback*\n'+
+    '🏫 Balmoral Primary · Grade 1\n'+
+    '📚 Lesson: Make a Number Less\n'+
+    '─────────────────────\n'+
+    '👦 Child: '+(child||'(not given)')+'\n'+
+    '👤 Parent: '+(parent||'(not given)')+'\n'+
+    '🏷️ Class: '+cls+'\n'+
+    '📅 Date: '+(date||'(not given)')+'\n'+
+    '─────────────────────\n'+
+    '🏁 Completion: '+comp+'\n'+
+    '⏱ Time taken: '+time+'\n'+
+    '🔁 Attempts: '+attempts+'\n'+
+    '📖 Revision done: '+revision+'\n'+
+    extra+
+    (comments?'💬 Comments: '+comments:'');
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  document.getElementById('akili-fb-thanks').style.display = 'block';
+  var btn = document.querySelector('.afsub-btn');
+  if(btn) btn.style.display = 'none';
+}
+
+</script>
+
+</body>
+</html>
